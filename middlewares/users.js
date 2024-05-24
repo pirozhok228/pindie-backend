@@ -2,6 +2,8 @@
 
 // Импортируем модель
 const users = require('../models/user');
+const bcryptjs = require("bcryptjs")
+
 
 const findAllUsers = async (req, res, next) => {
   // По GET-запросу на эндпоинт /users найдём все документы пользователей
@@ -10,9 +12,7 @@ const findAllUsers = async (req, res, next) => {
 }
 
 const createUser = async (req, res, next) => {
-  console.log("POST /users");
   try {
-    console.log(req.body);
     req.user = await users.create(req.body);
     next();
   }
@@ -59,7 +59,7 @@ const deleteUser = async (req, res, next) => {
 const checkEmptyNameAndEmailAndPassword = async (req, res, next) => {
   if (!req.body.username || !req.body.email || !req.body.password) {
     res.setHeader("Content-Type", "application/json");
-        res.status(400).send(JSON.stringify({ message: "Введите имя, email и пароль" }));
+    res.status(400).send(JSON.stringify({ message: "Введите имя, email и пароль" }));
   } else {
     next();
   }
@@ -68,7 +68,7 @@ const checkEmptyNameAndEmailAndPassword = async (req, res, next) => {
 const checkEmptyNameAndEmail = async (req, res, next) => {
   if (!req.body.username || !req.body.email) {
     res.setHeader("Content-Type", "application/json");
-        res.status(400).send(JSON.stringify({ message: "Введите имя и email" }));
+    res.status(400).send(JSON.stringify({ message: "Введите имя и email" }));
   } else {
     next();
   }
@@ -80,7 +80,7 @@ const checkIsUserExists = async (req, res, next) => {
   });
   if (isInArray) {
     res.setHeader("Content-Type", "application/json");
-        res.status(400).send(JSON.stringify({ message: "Пользователь с таким email уже существует" }));
+    res.status(400).send(JSON.stringify({ message: "Пользователь с таким email уже существует" }));
   } else {
     next();
   }
@@ -100,6 +100,21 @@ const filterPassword = (req, res, next) => {
   next();
 };
 
+
+const hashPassword = async (req, res, next) => {
+  try {
+    // Создаём случайную строку длиной в десять символов
+    const salt = await bcryptjs.genSalt(10);
+    // Хешируем пароль
+    const hash = await bcryptjs.hash(req.body.password, salt);
+    // Полученный в запросе пароль подменяем на хеш
+    req.body.password = hash;
+    next();
+  } catch (error) {
+    res.status(400).send({ message: "Ошибка хеширования пароля" });
+  }
+};
+
 // Экспортируем функцию поиска всех пользователей
 module.exports = {
   findAllUsers,
@@ -110,5 +125,6 @@ module.exports = {
   checkEmptyNameAndEmailAndPassword,
   checkEmptyNameAndEmail,
   checkIsUserExists,
-  filterPassword
+  filterPassword,
+  hashPassword
 };
